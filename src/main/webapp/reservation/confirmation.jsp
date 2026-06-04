@@ -70,7 +70,7 @@
     <div>
         <button onclick="window.print()" class="btn btn-print">🖨️ Imprimer</button>
         <a href="${pageContext.request.contextPath}/reservation" class="btn">📅 Nouvelle réservation</a>
-        <a href="${pageContext.request.contextPath}/dashboard.jsp" class="btn">🏠 Accueil</a>
+        <a href="${pageContext.request.contextPath}/admin/dashboard.jsp" class="btn">🏠 Accueil</a>
     </div>
 </div>
 </body>

@@ -32,15 +32,33 @@ public class ReservationServlet extends HttpServlet {
 
         System.out.println("🔵 GET ReservationServlet appelé");
 
-        // Nettoyer la session pour changer de client
         HttpSession session = request.getSession();
-        session.removeAttribute("selectedClient");
+        Client loggedInClient = (Client) session.getAttribute("client");
+
+        // Si l'utilisateur est connecté, le sélectionner automatiquement
+        if (loggedInClient != null) {
+            session.setAttribute("selectedClient", loggedInClient);
+            System.out.println("Client automatiquement sélectionné: " + loggedInClient.getPrenoms() + " " + loggedInClient.getNom());
+        }
+
+        // Nettoyer l'ancienne sélection si nécessaire (pour admin qui veut changer)
+        String reset = request.getParameter("reset");
+        if ("true".equals(reset)) {
+            session.removeAttribute("selectedClient");
+            session.setAttribute("selectedClient", loggedInClient);
+        }
 
         // Récupérer les vols disponibles
         List<Vol> vols = reservationDAO.getAvailableVols();
         System.out.println("Nombre de vols disponibles: " + (vols != null ? vols.size() : 0));
 
         request.setAttribute("vols", vols);
+
+        // Si client déjà sélectionné, l'envoyer à la JSP
+        if (loggedInClient != null) {
+            request.setAttribute("selectedClient", loggedInClient);
+        }
+
         request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
     }
 
@@ -194,7 +212,14 @@ public class ReservationServlet extends HttpServlet {
                 session.setAttribute("toastType", "error");
                 session.setAttribute("toastDetails", e.getMessage());
 
-                response.sendRedirect(request.getContextPath() + "/reservations");
+                Client client =  (Client) session.getAttribute("selectedClient");
+                if (client.isAdmin()) {
+                    response.sendRedirect(request.getContextPath() + "/reservations");
+                }
+                else{
+                    System.out.println("il n'est pas admin. va dans /user/dashboard.jsp");
+                    response.sendRedirect(request.getContextPath() + "/user/dashboard.jsp");
+                }
             }
         }
     }

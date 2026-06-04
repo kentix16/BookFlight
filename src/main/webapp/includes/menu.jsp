@@ -120,7 +120,7 @@
 </head>
 <body>
 <nav class="navbar">
-    <h1><a href="${pageContext.request.contextPath}/dashboard.jsp">✈️ BookingApp</a></h1>
+    <h1><a href="${pageContext.request.contextPath}/admin/dashboard.jsp">✈️ BookingApp</a></h1>
     <div class="user-info">
         <span class="user-name">👤 <%= menuClient != null ? menuClient.getPrenoms() + " " + menuClient.getNom() : "Invité" %></span>
         <% if (menuClient != null && menuClient.isAdmin()) { %>
@@ -131,7 +131,7 @@
 </nav>
 
 <div class="nav-links">
-    <a href="${pageContext.request.contextPath}/dashboard.jsp" class="nav-link <%= currentPage.contains("dashboard") ? "active" : "" %>">📊 Dashboard</a>
+    <a href="${pageContext.request.contextPath}/admin/dashboard.jsp" class="nav-link <%= currentPage.contains("dashboard") ? "active" : "" %>">📊 Dashboard</a>
     <a href="${pageContext.request.contextPath}/reservation" class="nav-link <%= currentPage.contains("reservation") && !currentPage.contains("reservations") ? "active" : "" %>">✈️ Nouvelle réservation</a>
     <a href="${pageContext.request.contextPath}/reservations" class="nav-link <%= currentPage.contains("reservations") ? "active" : "" %>">📋 Mes réservations</a>
     <% if (menuClient != null && menuClient.isAdmin()) { %>

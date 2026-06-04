@@ -143,7 +143,7 @@
 
 <div class="admin-container">
     <div class="nav-links">
-        <a href="${pageContext.request.contextPath}/dashboard.jsp" class="nav-link">📊 Dashboard</a>
+        <a href="${pageContext.request.contextPath}/admin/dashboard.jsp" class="nav-link">📊 Dashboard</a>
         <a href="${pageContext.request.contextPath}/admin/vols" class="nav-link">✈️ Vols</a>
         <a href="${pageContext.request.contextPath}/admin/avions" class="nav-link active">🛩️ Avions</a>
     </div>

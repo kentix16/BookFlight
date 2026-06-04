@@ -2,6 +2,31 @@
 <%@ page import="com.projetihm.avionmanagement.model.Client" %>
 <%@ page import="com.projetihm.avionmanagement.model.Vol" %>
 <%@ page import="java.util.List" %>
+
+<%!
+    String getStatutFrancais(String statutAnglais) {
+        if (statutAnglais == null) return "Inconnu";
+        switch(statutAnglais) {
+            case "scheduled": return "Planifié";
+            case "delayed": return "En retard";
+            case "cancelled": return "Annulé";
+            case "completed": return "Terminé";
+            default: return statutAnglais;
+        }
+    }
+
+    String getStatutClass(String statutAnglais) {
+        if (statutAnglais == null) return "status-unknown";
+        switch(statutAnglais) {
+            case "scheduled": return "status-scheduled";
+            case "delayed": return "status-delayed";
+            case "cancelled": return "status-cancelled";
+            case "completed": return "status-completed";
+            default: return "status-unknown";
+        }
+    }
+%>
+
 <%
     Client client = (Client) session.getAttribute("client");
     if (client == null || !client.isAdmin()) {
@@ -13,7 +38,10 @@
     String success = request.getParameter("success");
     String error = request.getParameter("error");
 %>
+
 <!DOCTYPE html>
+<!-- reste du HTML... -->
+
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -74,16 +102,17 @@
 
         .status {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 15px;
-            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: 600;
         }
 
-        .status-planifie { background: #3498db; color: white; }
-        .status-en-retard { background: #e67e22; color: white; }
-        .status-annule { background: #e74c3c; color: white; }
-        .status-termine { background: #27ae60; color: white; }
+        .status-scheduled { background: #3498db; color: white; }
+        .status-delayed { background: #f39c12; color: white; }
+        .status-cancelled { background: #e74c3c; color: white; }
+        .status-completed { background: #27ae60; color: white; }
+        .status-unknown { background: #95a5a6; color: white; }
 
         .table-container {
             overflow-x: auto;
@@ -142,13 +171,44 @@
         .back-link:hover {
             text-decoration: underline;
         }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            background: #f0f3f8;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
     </style>
 </head>
 <body class="dashboard-body">
+
 <jsp:include page="/includes/menu.jsp" />
 
 <div class="admin-container">
-    <a href="${pageContext.request.contextPath}/dashboard.jsp" class="back-link">← Retour au tableau de bord</a>
+    <div class="nav-links">
+        <a href="${pageContext.request.contextPath}/admin/dashboard.jsp" class="nav-link">📊 Dashboard</a>
+        <a href="${pageContext.request.contextPath}/admin/vols" class="nav-link active">✈️ Vols</a>
+        <a href="${pageContext.request.contextPath}/admin/avions" class="nav-link">🛩️ Avions</a>
+    </div>
 
     <div class="header-actions">
         <h2>✈️ Gestion des vols</h2>
@@ -188,8 +248,8 @@
             <tr>
                 <th>ID</th>
                 <th>Avion</th>
-                <th>Lieu départ</th>
-                <th>Lieu arrivée</th>
+                <th>Départ</th>
+                <th>Arrivée</th>
                 <th>Date départ</th>
                 <th>Date arrivée</th>
                 <th>Statut</th>
@@ -207,9 +267,9 @@
                 <td><%= vol.getDateDepart() != null ? vol.getDateDepart().toString().substring(0, 16) : "" %></td>
                 <td><%= vol.getDateArrivee() != null ? vol.getDateArrivee().toString().substring(0, 16) : "" %></td>
                 <td>
-                                    <span class="status status-<%= vol.getStatutVol() %>">
-                                        <%= vol.getStatutVol() %>
-                                    </span>
+                    <span class="status <%= getStatutClass(vol.getStatutVol()) %>">
+                        <%= getStatutFrancais(vol.getStatutVol()) %>
+                    </span>
                 </td>
                 <td>
                     <a href="${pageContext.request.contextPath}/admin/vol-edit?action=edit&id=<%= vol.getIdVol() %>"
@@ -221,7 +281,7 @@
             <% } %>
             <% } else { %>
             <tr>
-                <td colspan="10" style="text-align: center;">Aucun vol trouvé</td>
+                <td colspan="8" style="text-align: center;">Aucun vol trouvé</td>
             </tr>
             <% } %>
             </tbody>

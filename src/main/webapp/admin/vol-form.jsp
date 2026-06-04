@@ -14,6 +14,11 @@
     List<Avion> avions = (List<Avion>) request.getAttribute("avions");
     String title = (String) request.getAttribute("title");
     boolean isEdit = (vol != null);
+
+    String errorMessage = request.getParameter("error");
+    if (errorMessage == null) {
+        errorMessage = (String) request.getAttribute("errorMessage");
+    }
 %>
 <!DOCTYPE html>
 <html lang="fr">
@@ -112,9 +117,29 @@
             color: #999;
             margin-top: 5px;
         }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
     </style>
 </head>
 <body class="dashboard-body">
+
+<!-- Menu simple sans includes -->
 <nav class="navbar">
     <h1>✈️ BookingApp - Administration</h1>
     <div class="user-info">
@@ -130,6 +155,12 @@
     <div class="form-card">
         <h2><%= title %></h2>
 
+        <% if (errorMessage != null && !errorMessage.isEmpty()) { %>
+        <div class="alert-error">
+            ❌ <%= errorMessage %>
+        </div>
+        <% } %>
+
         <form method="POST" action="${pageContext.request.contextPath}/admin/vol-edit">
             <input type="hidden" name="action" value="<%= isEdit ? "edit" : "add" %>">
             <% if (isEdit) { %>
@@ -140,12 +171,14 @@
                 <label>Avion *</label>
                 <select name="id_avion" required>
                     <option value="">Sélectionnez un avion</option>
-                    <% for (Avion avion : avions) { %>
+                    <% if (avions != null) {
+                        for (Avion avion : avions) { %>
                     <option value="<%= avion.getIdAvion() %>"
                             <%= isEdit && vol.getIdAvion() == avion.getIdAvion() ? "selected" : "" %>>
                         <%= avion.getModele() %> - <%= avion.getClasse() %> - <%= avion.getNombrePlaces() %> places
                     </option>
-                    <% } %>
+                    <% }
+                    } %>
                 </select>
             </div>
 
@@ -180,10 +213,10 @@
             <div class="form-group">
                 <label>Statut du vol *</label>
                 <select name="statut_vol" required>
-                    <option value="planifié" <%= isEdit && "planifié".equals(vol.getStatutVol()) ? "selected" : "" %>>Planifié</option>
-                    <option value="en_retard" <%= isEdit && "en_retard".equals(vol.getStatutVol()) ? "selected" : "" %>>En retard</option>
-                    <option value="annulé" <%= isEdit && "annulé".equals(vol.getStatutVol()) ? "selected" : "" %>>Annulé</option>
-                    <option value="terminé" <%= isEdit && "terminé".equals(vol.getStatutVol()) ? "selected" : "" %>>Terminé</option>
+                    <option value="planifié" <%= isEdit && "scheduled".equals(vol.getStatutVol()) ? "selected" : "" %>>Planifié</option>
+                    <option value="en_retard" <%= isEdit && "delayed".equals(vol.getStatutVol()) ? "selected" : "" %>>En retard</option>
+                    <option value="annulé" <%= isEdit && "cancelled".equals(vol.getStatutVol()) ? "selected" : "" %>>Annulé</option>
+                    <option value="terminé" <%= isEdit && "completed".equals(vol.getStatutVol()) ? "selected" : "" %>>Terminé</option>
                 </select>
             </div>
 

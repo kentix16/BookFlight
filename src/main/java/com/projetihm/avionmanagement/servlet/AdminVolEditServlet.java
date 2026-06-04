@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpSession;
 
 @WebServlet("/admin/vol-edit")
 public class AdminVolEditServlet extends HttpServlet {
+
     private static final Map<String, String> STATUS_MAP = new HashMap<>();
     static {
         STATUS_MAP.put("planifié", "scheduled");
@@ -40,13 +41,13 @@ public class AdminVolEditServlet extends HttpServlet {
     public void init() {
         volDAO = new VolDAO();
         avionDAO = new AvionDAO();
+        System.out.println("✅ AdminVolEditServlet initialisé");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Vérifier si l'utilisateur est admin
         HttpSession session = request.getSession();
         Client client = (Client) session.getAttribute("client");
 
@@ -58,7 +59,6 @@ public class AdminVolEditServlet extends HttpServlet {
         String action = request.getParameter("action");
         String idParam = request.getParameter("id");
 
-        // Récupérer la liste des avions pour le formulaire
         List<Avion> avions = avionDAO.getAllAvions();
         request.setAttribute("avions", avions);
 
@@ -83,9 +83,13 @@ public class AdminVolEditServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        System.out.println("🔵 AdminVolEditServlet - doPost appelé");
+
         String volId = request.getParameter("vol_id");
         String action = request.getParameter("action");
 
+        System.out.println("Action: " + action);
+        System.out.println("VolId: " + volId);
 
         try {
             int idAvion = Integer.parseInt(request.getParameter("id_avion"));
@@ -94,44 +98,40 @@ public class AdminVolEditServlet extends HttpServlet {
             String lieuDepart = request.getParameter("lieu_depart");
             String lieuArrivee = request.getParameter("lieu_arrivee");
             String statutVol = request.getParameter("statut_vol");
+
+            System.out.println("IdAvion: " + idAvion);
+            System.out.println("DateDepart: " + dateDepartStr);
+            System.out.println("LieuDepart: " + lieuDepart);
+            System.out.println("StatutVol recu: " + statutVol);
+
+            // Convertir le statut français en anglais
             statutVol = STATUS_MAP.get(statutVol);
-            // Dans AdminVolEditServlet.java
-            /*String statutVol = request.getParameter("statut_vol");
-
-// Nettoyer et normaliser la valeur, puis convertir en anglais
-            if (statutVol != null) {
-                statutVol = statutVol.trim();
-
-                // Convertir les valeurs françaises vers l'anglais
-                if (statutVol.equals("planifié") || statutVol.equals("planifie") ||
-                        statutVol.equals("planifi�") || statutVol.equals("planifiÃ©")) {
-                    statutVol = "scheduled";
-                } else if (statutVol.equals("en_retard") || statutVol.equals("en retard")) {
-                    statutVol = "delayed";
-                } else if (statutVol.equals("annulé") || statutVol.equals("annule") ||
-                        statutVol.equals("annul�") || statutVol.equals("annulÃ©")) {
-                    statutVol = "cancelled";
-                } else if (statutVol.equals("terminé") || statutVol.equals("termine") ||
-                        statutVol.equals("termin�") || statutVol.equals("terminÃ©")) {
-                    statutVol = "completed";
-                }
+            if (statutVol == null) {
+                statutVol = "scheduled";
             }
 
-// Validation
-            if (statutVol == null || (!statutVol.equals("scheduled") &&
-                    !statutVol.equals("delayed") &&
-                    !statutVol.equals("cancelled") &&
-                    !statutVol.equals("completed"))) {
-                response.sendRedirect(request.getContextPath() + "/admin/vols?error=invalid_status");
-                return;
-            }*/
-// Normaliser la valeur
+            System.out.println("StatutVol apres conversion: " + statutVol);
+
             // Conversion des dates
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
             java.util.Date dateDepartUtil = sdf.parse(dateDepartStr);
             java.util.Date dateArriveeUtil = sdf.parse(dateArriveeStr);
             Timestamp dateDepart = new Timestamp(dateDepartUtil.getTime());
             Timestamp dateArrivee = new Timestamp(dateArriveeUtil.getTime());
+
+            // Validation de base
+            Timestamp today = new Timestamp(System.currentTimeMillis());
+            if (dateDepart.before(today)) {
+                System.out.println("❌ Erreur: Date dans le passé");
+                response.sendRedirect(request.getContextPath() + "/admin/vols?error=date_passee");
+                return;
+            }
+
+            if (dateArrivee.before(dateDepart)) {
+                System.out.println("❌ Erreur: Date arrivée avant date départ");
+                response.sendRedirect(request.getContextPath() + "/admin/vols?error=date_arrivee_invalide");
+                return;
+            }
 
             Vol vol = new Vol();
             vol.setIdAvion(idAvion);
@@ -141,18 +141,25 @@ public class AdminVolEditServlet extends HttpServlet {
             vol.setLieuArrivee(lieuArrivee);
             vol.setStatutVol(statutVol);
 
-            boolean success;
+            boolean success = false;
 
             if ("add".equals(action)) {
+                System.out.println("🔵 Tentative d'ajout de vol...");
                 success = volDAO.addVol(vol);
+                System.out.println("Résultat addVol: " + success);
+
                 if (success) {
                     response.sendRedirect(request.getContextPath() + "/admin/vols?success=added");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/admin/vols?error=add_failed");
                 }
+
             } else if ("edit".equals(action) && volId != null && !volId.isEmpty()) {
                 vol.setIdVol(Integer.parseInt(volId));
+                System.out.println("🔵 Tentative de modification du vol ID: " + volId);
                 success = volDAO.updateVol(vol);
+                System.out.println("Résultat updateVol: " + success);
+
                 if (success) {
                     response.sendRedirect(request.getContextPath() + "/admin/vols?success=updated");
                 } else {
@@ -163,6 +170,7 @@ public class AdminVolEditServlet extends HttpServlet {
             }
 
         } catch (Exception e) {
+            System.err.println("❌ Exception dans AdminVolEditServlet: " + e.getMessage());
             e.printStackTrace();
             response.sendRedirect(request.getContextPath() + "/admin/vols?error=" + e.getMessage());
         }

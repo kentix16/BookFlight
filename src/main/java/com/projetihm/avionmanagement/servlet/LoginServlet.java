@@ -41,7 +41,11 @@ public class LoginServlet extends HttpServlet {
                 session.setAttribute("prenoms", client.getPrenoms());
                 session.setAttribute("isAdmin", client.isAdmin());
 
-                response.sendRedirect(request.getContextPath() + "/dashboard.jsp");
+                if (client.isAdmin()) {
+                    response.sendRedirect(request.getContextPath() + "/admin/dashboard.jsp");
+                } else {
+                    response.sendRedirect(request.getContextPath() + "/user/dashboard.jsp");
+                }
             } else {
                 response.sendRedirect(request.getContextPath() + "/login.jsp?error=invalid_credentials");
             }
