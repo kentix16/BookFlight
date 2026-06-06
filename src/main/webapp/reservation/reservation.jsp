@@ -12,6 +12,10 @@
     String successMessage = (String) request.getAttribute("successMessage");
 
     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+
+    // Vérifier si l'utilisateur est admin
+    Client loggedUser = (Client) session.getAttribute("client");
+    boolean isAdmin = (loggedUser != null && loggedUser.isAdmin());
 %>
 <!DOCTYPE html>
 <html lang="fr">
@@ -30,35 +34,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            position: relative;
-        }
-
-        /* BACKGROUND AVEC IMAGE D'AVION ET SUPERPOSITION */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1600');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            filter: brightness(0.7);
-            z-index: -2;
-        }
-
-        body::after {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
-            z-index: -1;
+            background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
         }
 
         /* CONTENEUR PRINCIPAL */
@@ -95,7 +71,6 @@
         .page-title:before {
             content: "📅";
             font-size: 2rem;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
         }
 
         /* GRILLE 2 COLONNES */
@@ -224,10 +199,6 @@
         .btn-secondary {
             background: #95a5a6;
             color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
         }
 
         .btn-outline {
@@ -392,7 +363,16 @@
             border-left: 4px solid #27ae60;
         }
 
-        /* FORMULAIRE NOUVEAU CLIENT */
+        .info-client {
+            background: rgba(255, 243, 205, 0.95);
+            color: #856404;
+            padding: 0.75rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
         #newClientForm {
             margin-top: 1rem;
             padding-top: 1rem;
@@ -417,77 +397,18 @@
             margin-top: 1rem;
         }
 
-        /* RESPONSIVE */
         @media (max-width: 968px) {
             .booking-grid {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
             }
-
             .reservation-container {
                 margin-top: 80px;
                 padding: 0 1rem;
             }
-
             .page-title {
                 font-size: 1.5rem;
             }
-        }
-
-        @media (max-width: 480px) {
-            .card-body {
-                padding: 1rem;
-            }
-
-            .btn {
-                padding: 0.6rem 1rem;
-            }
-
-            .flight-details {
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-
-            .page-title {
-                font-size: 1.3rem;
-            }
-        }
-
-        /* Animation de chargement des cartes */
-        .card {
-            animation: fadeInScale 0.5s ease-out backwards;
-        }
-
-        .card:first-child {
-            animation-delay: 0.1s;
-        }
-
-        .card:last-child {
-            animation-delay: 0.2s;
-        }
-
-        @keyframes fadeInScale {
-            from {
-                opacity: 0;
-                transform: scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        /* BACKGROUND UNI COULEUR #5a67d8 */
-        body {
-            background: #5a67d8;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        /* Version avec dégradé de la même couleur */
-        body {
-            background: linear-gradient(135deg, #5a67d8 0%, #4c51bf 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
     </style>
 </head>
@@ -514,7 +435,9 @@
                 </div>
                 <div class="card-body">
                     <% if (selectedClient == null) { %>
-                    <!-- Formulaire de recherche -->
+                    <!-- Si admin : afficher la recherche, sinon message pour utilisateur normal -->
+                    <% if (isAdmin) { %>
+                    <!-- Formulaire de recherche (visible uniquement pour admin) -->
                     <form method="post" action="${pageContext.request.contextPath}/reservation">
                         <input type="hidden" name="action" value="searchClient">
                         <div class="form-group">
@@ -574,17 +497,27 @@
                             </div>
                         </form>
                     </div>
-
                     <% } else { %>
-                    <!-- Client sélectionné -->
+                    <!-- Utilisateur normal : message d'information -->
+                    <div class="info-client">
+                        <p>👤 Vous allez réserver pour votre propre compte.</p>
+                        <p>📧 <%= loggedUser != null ? loggedUser.getEmail() : "" %></p>
+                        <p>📞 <%= loggedUser != null ? loggedUser.getContact() : "" %></p>
+                    </div>
+                    <div class="mt-2">
+                        <a href="${pageContext.request.contextPath}/user/dashboard.jsp" class="btn btn-outline" style="display: block; text-align: center; text-decoration: none;">← Retour à mon espace</a>
+                    </div>
+                    <% } %>
+                    <% } else { %>
+                    <!-- Client sélectionné (affiché pour admin seulement) -->
                     <div class="client-card">
                         <p class="client-name">👤 <%= selectedClient.getPrenoms() %> <%= selectedClient.getNom() %></p>
                         <p class="client-detail">📧 <%= selectedClient.getEmail() %></p>
                         <p class="client-detail">📞 <%= selectedClient.getContact() %></p>
                     </div>
-                    <form method="get" action="${pageContext.request.contextPath}/reservation">
-                        <button type="submit" class="btn btn-danger" style="width: 100%;">🔄 Changer de client</button>
-                    </form>
+                        <%if (isAdmin){%>
+                            <a href="${pageContext.request.contextPath}/reservation?reset=true" class="btn btn-danger" style="width: 100%; display: block; text-align: center; text-decoration: none;">🔄 Changer de client</a>
+                        <%}%>
                     <% } %>
                 </div>
             </div>
@@ -597,11 +530,23 @@
                     <h3>✈️ Sélection du vol</h3>
                 </div>
                 <div class="card-body">
-                    <% if (selectedClient == null) { %>
+                    <% if (selectedClient == null && !isAdmin) {
+                        // Utilisateur normal mais pas de client sélectionné (devrait pas arriver)
+                        Client autoClient = (Client) session.getAttribute("client");
+                        if (autoClient != null) {
+                            session.setAttribute("selectedClient", autoClient);
+                            response.sendRedirect(request.getContextPath() + "/reservation");
+                            return;
+                        }
+                    %>
+                    <div class="alert alert-error">Chargement de vos informations...</div>
+                    <% } else if (selectedClient == null && isAdmin) { %>
                     <div class="alert alert-error">Veuillez d'abord sélectionner ou créer un client</div>
                     <% } else if (vols == null || vols.isEmpty()) { %>
                     <div class="alert alert-error">Aucun vol disponible pour le moment</div>
+                    <% if (isAdmin) { %>
                     <a href="${pageContext.request.contextPath}/admin/vols" class="btn btn-primary" style="display: block; text-align: center; text-decoration: none;">➕ Ajouter un vol</a>
+                    <% } %>
                     <% } else { %>
                     <form id="bookingForm" method="post" action="${pageContext.request.contextPath}/reservation">
                         <input type="hidden" name="action" value="book">
@@ -624,7 +569,10 @@
                         </div>
 
                         <div id="volsList">
-                            <% for (Vol vol : vols) { %>
+                            <% for (Vol vol : vols) {
+                                // DEBUG: Afficher la valeur dans la console (visible dans les logs Tomcat)
+                                System.out.println("Vol ID: " + vol.getIdVol() + " - Places disponibles: " + vol.getPlacesDisponibles());
+                            %>
                             <div class="flight-card" onclick="selectVol(<%= vol.getIdVol() %>, '<%= vol.getLieuDepart() %>', '<%= vol.getLieuArrivee() %>', <%= vol.getFrais() %>)">
                                 <div class="flight-route">
                                     ✈️ <%= vol.getLieuDepart() %> → <%= vol.getLieuArrivee() %>
@@ -633,12 +581,20 @@
                                     <span>🛩️ <%= vol.getModeleAvion() %></span>
                                     <span>📅 <%= sdf.format(vol.getDateDepart()) %></span>
                                     <span class="flight-price">💰 <%= String.format("%,.0f", vol.getFrais()) %> FCFA/place</span>
+                                    <%
+                                        int placesDisponibles = vol.getPlacesDisponibles();
+                                        if (placesDisponibles > 0) {
+                                    %>
+                                    <span class="flight-price" style="color: #3498db;">🎟️ <%= placesDisponibles %> places restantes</span>
+                                    <% } else { %>
+                                    <span class="flight-price" style="color: #e74c3c;">❌ Complet</span>
+                                    <% } %>
                                 </div>
                             </div>
                             <% } %>
                         </div>
 
-                        <!-- Résumé de la réservation -->
+
                         <div class="booking-summary" id="bookingSummary">
                             <p style="color: #888;">Sélectionnez un vol ci-dessus</p>
                         </div>
@@ -664,21 +620,15 @@
     }
 
     function selectVol(id, depart, arrivee, price) {
-        // Retirer la sélection précédente
         document.querySelectorAll('.flight-card').forEach(card => {
             card.classList.remove('selected');
         });
-
-        // Sélectionner le nouveau vol
         event.currentTarget.classList.add('selected');
         selectedVolId = id;
         selectedVolPrice = price;
         selectedVolDepart = depart;
         selectedVolArrivee = arrivee;
-
         document.getElementById('selectedVolId').value = id;
-
-        // Mettre à jour le résumé
         updateSummary();
         checkFormComplete();
     }
@@ -692,11 +642,11 @@
         if (selectedVolId && nombrePlaces && nombrePlaces > 0) {
             const total = selectedVolPrice * nombrePlaces;
             let html = `
-                    <p><strong>✈️ Vol sélectionné :</strong> ${selectedVolDepart} → ${selectedVolArrivee}</p>
-                    <p><strong>🎟️ Nombre de places :</strong> ${nombrePlaces}</p>
-                    <p><strong>💰 Prix unitaire :</strong> ${selectedVolPrice.toLocaleString()} FCFA</p>
-                    <div class="summary-total">💵 Montant total : ${total.toLocaleString()} FCFA</div>
-                `;
+                <p><strong>✈️ Vol sélectionné :</strong> ${selectedVolDepart} → ${selectedVolArrivee}</p>
+                <p><strong>🎟️ Nombre de places :</strong> ${nombrePlaces}</p>
+                <p><strong>💰 Prix unitaire :</strong> ${selectedVolPrice.toLocaleString()} FCFA</p>
+                <div class="summary-total">💵 Montant total : ${total.toLocaleString()} FCFA</div>
+            `;
             if (modeSelected && modeSelected !== 'Sélectionnez un mode de paiement') {
                 html += `<p><strong>💳 Paiement :</strong> ${modeSelected}</p>`;
             }
@@ -718,7 +668,6 @@
         }
     }
 
-    // Écouteurs d'événements
     document.getElementById('nombrePlaces').addEventListener('input', function() {
         updateSummary();
         checkFormComplete();

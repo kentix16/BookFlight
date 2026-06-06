@@ -9,7 +9,7 @@ import java.util.List;
 
 public class ReservationDAO {
 
-    private Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         String url = "jdbc:postgresql://localhost:5432/ihm_avion";
         String user = "postgres";
         String password = "";
@@ -190,8 +190,15 @@ public class ReservationDAO {
     }
 
     // Vérifier les places disponibles
+    // Vérifier les places disponibles pour un vol
+    // Vérifier les places disponibles pour un vol (version simple)
+    // Vérifier les places disponibles pour un vol (version corrigée)
     public int getAvailableSeats(int idVol) {
-        String sql = "SELECT a.nombre_places - COALESCE(SUM(r.nombre_places), 0) as places_disponibles " +
+        System.out.println("=== getAvailableSeats appelé pour vol ID: " + idVol);
+
+        String sql = "SELECT " +
+                "  a.nombre_places as capacite, " +
+                "  COALESCE(SUM(r.nombre_places), 0) as reservees " +
                 "FROM AVION a " +
                 "JOIN VOL v ON a.id_avion = v.id_avion " +
                 "LEFT JOIN RESERVATION r ON v.id_vol = r.id_vol AND r.statut != 'cancelled' " +
@@ -205,10 +212,21 @@ public class ReservationDAO {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getInt("places_disponibles");
+                int capacite = rs.getInt("capacite");
+                int reservees = rs.getInt("reservees");
+                int placesDisponibles = capacite - reservees;
+
+                System.out.println("Capacité: " + capacite);
+                System.out.println("Réservées: " + reservees);
+                System.out.println("Disponibles: " + placesDisponibles);
+
+                return placesDisponibles;
+            } else {
+                System.out.println("Aucune ligne retournée pour le vol " + idVol);
             }
 
         } catch (SQLException e) {
+            System.err.println("SQL Error: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -262,6 +280,69 @@ public class ReservationDAO {
             }
 
         } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    // Récupérer le nombre total de places de l'avion pour un vol donné
+    public int getTotalSeatsByVolId(int idVol) {
+        String sql = "SELECT a.nombre_places FROM AVION a " +
+                "JOIN VOL v ON a.id_avion = v.id_avion " +
+                "WHERE v.id_vol = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idVol);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("nombre_places");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    // Récupérer le nombre de places déjà réservées pour un vol (hors annulées)
+    public int getAlreadyBookedSeats(int idVol) {
+        String sql = "SELECT COALESCE(SUM(r.nombre_places), 0) as total_reservees " +
+                "FROM RESERVATION r " +
+                "WHERE r.id_vol = ? AND r.statut != 'cancelled'";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idVol);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("total_reservees");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+    public void testConnection(int idVol) {
+        try {
+            Connection conn = getConnection();
+            Statement stmt = conn.createStatement();
+            String sql = "SELECT a.nombre_places FROM AVION a JOIN VOL v ON a.id_avion = v.id_avion WHERE v.id_vol = " + idVol;
+            ResultSet rs = stmt.executeQuery(sql);
+            if (rs.next()) {
+                System.out.println("TEST - Capacité pour vol " + idVol + ": " + rs.getInt("nombre_places"));
+            } else {
+                System.out.println("TEST - Aucun résultat pour vol " + idVol);
+            }
+            rs.close();
+            stmt.close();
+            conn.close();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

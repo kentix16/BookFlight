@@ -31,33 +31,42 @@ public class ReservationServlet extends HttpServlet {
             throws ServletException, IOException {
 
         System.out.println("🔵 GET ReservationServlet appelé");
+        //reservationDAO.testConnection(28);
 
         HttpSession session = request.getSession();
         Client loggedInClient = (Client) session.getAttribute("client");
 
-        // Si l'utilisateur est connecté, le sélectionner automatiquement
-        if (loggedInClient != null) {
-            session.setAttribute("selectedClient", loggedInClient);
-            System.out.println("Client automatiquement sélectionné: " + loggedInClient.getPrenoms() + " " + loggedInClient.getNom());
-        }
-
-        // Nettoyer l'ancienne sélection si nécessaire (pour admin qui veut changer)
+        // Récupérer le paramètre reset pour savoir si l'admin veut changer de client
         String reset = request.getParameter("reset");
+
+        // Si reset=true, on supprime le client sélectionné
         if ("true".equals(reset)) {
             session.removeAttribute("selectedClient");
+            System.out.println("Reset client sélectionné");
+        }
+
+        // Récupérer le client sélectionné (peut être null après reset)
+        Client selectedClient = (Client) session.getAttribute("selectedClient");
+
+        // Si aucun client n'est sélectionné et que l'utilisateur n'est PAS admin, on auto-sélectionne l'utilisateur connecté
+        if (selectedClient == null && loggedInClient != null && !loggedInClient.isAdmin()) {
             session.setAttribute("selectedClient", loggedInClient);
+            System.out.println("Client automatiquement sélectionné pour utilisateur normal: " + loggedInClient.getPrenoms() + " " + loggedInClient.getNom());
         }
 
         // Récupérer les vols disponibles
         List<Vol> vols = reservationDAO.getAvailableVols();
+
+        // Calculer les places disponibles pour chaque vol
+        for (Vol vol : vols) {
+            int placesDisponibles = reservationDAO.getAvailableSeats(vol.getIdVol());
+            vol.setPlacesDisponibles(placesDisponibles);
+            System.out.println("Vol " + vol.getIdVol() + " - Places disponibles: " + placesDisponibles);
+        }
+
         System.out.println("Nombre de vols disponibles: " + (vols != null ? vols.size() : 0));
 
         request.setAttribute("vols", vols);
-
-        // Si client déjà sélectionné, l'envoyer à la JSP
-        if (loggedInClient != null) {
-            request.setAttribute("selectedClient", loggedInClient);
-        }
 
         request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
     }
@@ -71,20 +80,25 @@ public class ReservationServlet extends HttpServlet {
 
         System.out.println("🔵 POST ReservationServlet - Action: " + action);
 
-        if ("searchClient".equals(action)) {
-            // Rechercher un client
-            String searchTerm = request.getParameter("searchTerm");
-            System.out.println("Recherche client: " + searchTerm);
+    if ("searchClient".equals(action)) {
+        // Rechercher un client
+        String searchTerm = request.getParameter("searchTerm");
+        System.out.println("Recherche client: " + searchTerm);
 
-            List<Client> clients = reservationDAO.searchClients(searchTerm);
-            List<Vol> vols = reservationDAO.getAvailableVols();
+        List<Client> clients = reservationDAO.searchClients(searchTerm);
+        List<Vol> vols = reservationDAO.getAvailableVols();
 
-            request.setAttribute("searchResults", clients);
-            request.setAttribute("searchTerm", searchTerm);
-            request.setAttribute("vols", vols);
-            request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
+        // 🔥 AJOUTE CETTE PARTIE - Calculer les places disponibles
+        for (Vol vol : vols) {
+            int placesDisponibles = reservationDAO.getAvailableSeats(vol.getIdVol());
+            vol.setPlacesDisponibles(placesDisponibles);
+        }
 
-        } else if ("selectClient".equals(action)) {
+        request.setAttribute("searchResults", clients);
+        request.setAttribute("searchTerm", searchTerm);
+        request.setAttribute("vols", vols);
+        request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
+    } else if ("selectClient".equals(action)) {
             // Sélectionner un client existant
             int clientId = Integer.parseInt(request.getParameter("clientId"));
             System.out.println("Sélection client ID: " + clientId);
@@ -93,12 +107,23 @@ public class ReservationServlet extends HttpServlet {
             HttpSession session = request.getSession();
             session.setAttribute("selectedClient", client);
 
+            // Récupérer les vols disponibles et calculer les places disponibles
             List<Vol> vols = reservationDAO.getAvailableVols();
+
+            // 🔥 AJOUTE CETTE PARTIE - Recalculer les places disponibles
+            for (Vol vol : vols) {
+                int placesDisponibles = reservationDAO.getAvailableSeats(vol.getIdVol());
+                vol.setPlacesDisponibles(placesDisponibles);
+                System.out.println("Vol " + vol.getIdVol() + " - Places disponibles: " + placesDisponibles);
+            }
+
             request.setAttribute("vols", vols);
             request.setAttribute("selectedClient", client);
             request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
 
-        } else if ("createClient".equals(action)) {
+
+        }
+        else if ("createClient".equals(action)) {
             // Créer un nouveau client
             String nom = request.getParameter("nom");
             String prenoms = request.getParameter("prenoms");
@@ -117,6 +142,12 @@ public class ReservationServlet extends HttpServlet {
 
             List<Vol> vols = reservationDAO.getAvailableVols();
 
+            // 🔥 AJOUTE CETTE PARTIE - Calculer les places disponibles
+            for (Vol vol : vols) {
+                int placesDisponibles = reservationDAO.getAvailableSeats(vol.getIdVol());
+                vol.setPlacesDisponibles(placesDisponibles);
+            }
+
             if (clientId > 0) {
                 Client client = reservationDAO.getClientById(clientId);
                 HttpSession session = request.getSession();
@@ -130,6 +161,7 @@ public class ReservationServlet extends HttpServlet {
             }
 
             request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
+
 
         } else if ("book".equals(action)) {
             try {
@@ -145,17 +177,28 @@ public class ReservationServlet extends HttpServlet {
                 }
 
                 int idVol = Integer.parseInt(request.getParameter("idVol"));
-                int nombrePlaces = Integer.parseInt(request.getParameter("nombrePlaces"));
+                int nombrePlacesDemandees = Integer.parseInt(request.getParameter("nombrePlaces"));
                 String modePaiement = request.getParameter("modePaiement");
 
-                // Vérifier les places disponibles
+                // Utiliser la méthode getAvailableSeats() existante
                 int placesDisponibles = reservationDAO.getAvailableSeats(idVol);
+                System.out.println("Places disponibles selon DAO: " + placesDisponibles);
 
-                if (nombrePlaces > placesDisponibles) {
+                // Vérifier si la demande est possible
+                if (nombrePlacesDemandees <= 0) {
                     List<Vol> vols = reservationDAO.getAvailableVols();
                     request.setAttribute("vols", vols);
-                    request.setAttribute("errorMessage", "Désolé, il ne reste que " + placesDisponibles + " place(s) disponible(s)");
+                    request.setAttribute("errorMessage", "Veuillez sélectionner au moins 1 place.");
                     request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
+                    return;
+                }
+
+                if (nombrePlacesDemandees > placesDisponibles) {
+                    List<Vol> vols = reservationDAO.getAvailableVols();
+                    request.setAttribute("vols", vols);
+                    request.setAttribute("errorMessage", "Désolé, il ne reste que " + placesDisponibles + " place(s) disponible(s) sur ce vol. Vous avez demandé " + nombrePlacesDemandees + " place(s).");
+                    request.getRequestDispatcher("/reservation/reservation.jsp").forward(request, response);
+                    request.removeAttribute("SelectedClient");
                     return;
                 }
 
@@ -165,13 +208,13 @@ public class ReservationServlet extends HttpServlet {
                     throw new Exception("Vol non trouvé");
                 }
 
-                double montantTotal = nombrePlaces * vol.getFrais();
+                double montantTotal = nombrePlacesDemandees * vol.getFrais();
 
                 // Créer la réservation
                 Reservation reservation = new Reservation();
                 reservation.setIdClient(client.getIdClient());
                 reservation.setIdVol(idVol);
-                reservation.setNombrePlaces(nombrePlaces);
+                reservation.setNombrePlaces(nombrePlacesDemandees);
                 reservation.setStatut("confirmed");
                 reservation.setMontantTotal(montantTotal);
 
@@ -187,18 +230,22 @@ public class ReservationServlet extends HttpServlet {
 
                     System.out.println("✅ Réservation créée avec succès");
 
-                    // Stocker le message de succès en session pour le popup
+                    // Stocker le message de succès en session
                     session.setAttribute("toastMessage", "Réservation créée avec succès !");
                     session.setAttribute("toastType", "success");
-                    session.setAttribute("toastDetails", "Vol " + vol.getLieuDepart() + " → " + vol.getLieuArrivee() + " | " + nombrePlaces + " place(s) | " + String.format("%,.0f", montantTotal) + " FCFA");
+                    session.setAttribute("toastDetails", "Vol " + vol.getLieuDepart() + " → " + vol.getLieuArrivee() + " | " + nombrePlacesDemandees + " place(s) | " + String.format("%,.0f", montantTotal) + " FCFA");
 
-                    // Nettoyer la session client
-                    session.removeAttribute("selectedClient");
+                    // Nettoyer la session client seulement pour l'admin
+                    Client loggedUser = (Client) session.getAttribute("client");
+                    if (loggedUser != null && loggedUser.isAdmin()) {
+                        session.removeAttribute("selectedClient");
+                    }
 
                     // Rediriger vers la liste des réservations
                     response.sendRedirect(request.getContextPath() + "/reservations");
 
                 } else {
+                    session.removeAttribute("selectedClient");
                     throw new Exception("Échec de la création de la réservation");
                 }
 
@@ -206,20 +253,12 @@ public class ReservationServlet extends HttpServlet {
                 System.err.println("❌ Erreur: " + e.getMessage());
                 e.printStackTrace();
 
-                // Stocker le message d'erreur en session
                 HttpSession session = request.getSession();
                 session.setAttribute("toastMessage", "Erreur lors de la réservation");
                 session.setAttribute("toastType", "error");
                 session.setAttribute("toastDetails", e.getMessage());
 
-                Client client =  (Client) session.getAttribute("selectedClient");
-                if (client.isAdmin()) {
-                    response.sendRedirect(request.getContextPath() + "/reservations");
-                }
-                else{
-                    System.out.println("il n'est pas admin. va dans /user/dashboard.jsp");
-                    response.sendRedirect(request.getContextPath() + "/user/dashboard.jsp");
-                }
+                response.sendRedirect(request.getContextPath() + "/reservations");
             }
         }
     }

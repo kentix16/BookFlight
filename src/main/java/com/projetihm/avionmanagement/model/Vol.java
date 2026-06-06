@@ -11,7 +11,8 @@ public class Vol {
     private String lieuDepart;
     private String lieuArrivee;
     private String statutVol;
-    private double frais;  // ← AJOUTER CETTE LIGNE
+    private double frais;
+    private int placesDisponibles;// ← AJOUTER CETTE LIGNE
 
     // Constructeurs
     public Vol() {}
@@ -55,4 +56,7 @@ public class Vol {
     // ← AJOUTER CES DEUX MÉTHODES
     public double getFrais() { return frais; }
     public void setFrais(double frais) { this.frais = frais; }
+
+    public int getPlacesDisponibles() { return placesDisponibles; }
+    public void setPlacesDisponibles(int placesDisponibles) { this.placesDisponibles = placesDisponibles; }
 }
