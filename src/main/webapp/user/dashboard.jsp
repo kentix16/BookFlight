@@ -268,6 +268,7 @@
   <h1><a href="${pageContext.request.contextPath}/user/dashboard.jsp">✈️ BookingApp</a></h1>
   <div class="user-info">
     <span class="user-name">👤 <%= client.getPrenoms() %> <%= client.getNom() %></span>
+    <span> <a href="${pageContext.request.contextPath}/profile"> 👤Profile</a> </span>
     <a href="${pageContext.request.contextPath}/LogoutServlet" class="logout-btn">🚪 Déconnexion</a>
   </div>
 </header>

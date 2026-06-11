@@ -137,5 +137,6 @@
     <% if (menuClient != null && menuClient.isAdmin()) { %>
     <a href="${pageContext.request.contextPath}/admin/vols" class="nav-link <%= currentPage.contains("admin/vols") ? "active" : "" %>">🛩️ Gérer vols</a>
     <a href="${pageContext.request.contextPath}/admin/avions" class="nav-link <%= currentPage.contains("admin/avions") ? "active" : "" %>">✈️ Gérer avions</a>
+    <a href="${pageContext.request.contextPath}/profile" class="nav-link">👤Profile</a>
     <% } %>
 </div>
